@@ -69,7 +69,7 @@ def intro () :
 def console_out(line_out,line_log=log):
     print(line_out)
     if line_log!=None:
-        line_log.write(line_out)
+        line_log.write("\n"+line_out)
     return 0
 
 def dir_manage(dname):
@@ -102,16 +102,9 @@ def download_link(link,file_name,name=''):
 
     dir_manage(file_name[1])                 # Change directory
     
-    if link[:23]=="https://www.youtube.com":
-        if arg.over_ride_format and arg.over_ride_format!="m4a":
-            print("USING GENERIC")
-            dynamic_cmd=cmd_generic[:]
-        else:
-            print("Using YOUTUBE")
-            dynamic_cmd=cmd_youtube[:]
-    else:
-        print("USING GENERIC")
-        dynamic_cmd=cmd_generic[:]
+    dynamic_cmd=command_selection(link[:23],str(arg.over_ride_format or "m4a")) # CMD Selection
+    
+    #print(dynamic_cmd) # @Debug
     
     dynamic_cmd.append(link)                 # Adding link
     
@@ -125,11 +118,7 @@ def download_link(link,file_name,name=''):
         subprocess.run(dynamic_cmd,check=True,timeout=set_timeout)
         console_out("\nDOWNLOADED LINK ------{}\n".format(time.ctime(time.time()))) # If download completes open the file in append mode
         
-       
-        if file_name[1]=="..":
-            chdir(getcwd()+"/Muzic_Manager")           # chdir(getcwd()+"/DEV_DIR") chdir(getcwd()+"/Downloader")
-        else:            
-            chdir("../Muzic_Manager")                  # chdir("../DEV_DIR") chdir("../Downloader")
+        switch_folder_back(file_name[1]) # Changing Folder to Muzic_Manager
         
         try:
             with open(file_name[0],"r") as f:
@@ -151,9 +140,7 @@ def download_link(link,file_name,name=''):
         song_collection[letter+new_key]["Format"]=str(arg.over_ride_format or "m4a")
         song_collection[letter+new_key]["Modified"]=time.ctime(time.time())
     
-        song_data = open(file_name[0],"w+")
-        song_data.write(json.dumps(song_collection,indent=4))
-        song_data.close()
+        update_json(file_name[0], song_collection) # Updating info in json file
 
     except subprocess.CalledProcessError:
         console_out("\nERROR DOWNLOADING LINK ------{}\n".format(time.ctime(time.time())))    # else dont write to the file
@@ -161,6 +148,53 @@ def download_link(link,file_name,name=''):
     except subprocess.TimeoutExpired :
         print("PROCESS TOOK LONGER THAN EXPECTED")    
     return 0
+
+
+
+def command_selection(URL,format):
+    #print(format) @debug
+    if URL=="https://www.youtube.com":
+    
+        if arg.over_ride_format and arg.over_ride_format!="m4a":
+            print("USING GENERIC")
+            cmd_generic[5]=format
+            return cmd_generic[:]
+            
+        else:
+            if format and format!="m4a":
+                print("USING GENERIC")
+                cmd_generic[5]=format
+                return cmd_generic[:]
+            else:
+                print("Using YOUTUBE")
+                return cmd_youtube[:] 
+    else:
+        print("USING GENERIC")
+        cmd_generic[5]=format
+        return cmd_generic[:]
+
+
+def switch_folder_back(current):
+    
+    if current=="..":
+        chdir(getcwd()+"/Muzic_Manager")   # chdir(getcwd()+"/DEV_DIR") chdir(getcwd()+"/Downloader")
+    else:
+        chdir("../Muzic_Manager")  # chdir("../DEV_DIR") chdir("../Downloader")
+
+
+def update_json(file_name,song_collection):
+    print("Updating json")
+    song_data = open(file_name,"w+")
+    song_data.write(json.dumps(song_collection,indent=4))
+    song_data.close()
+
+def Error_log_msg():
+    console_out("Ooops......Interrupted")
+    console_out("NOTE: There might be partially downloaded files")
+    console_out("NOTE: The details of present download might not be recorded")
+    log.write("\nOoops......Interrupted\nNOTE: There might be partially downloaded files\nNOTE: The details of present download might not be recorded")
+    log.write("\n--------------------------------------")
+    log.close()
 
 ######################### MAIN PROGRAM ############################################
 
@@ -208,24 +242,23 @@ if __name__=='__main__':                            # Starting of the program --
 
                         if song_collection[key]["Hash"]!="[#]":
 
-                            if song_collection[key]["URL"][:23]=="https://www.youtube.com":
-                                
-                                if arg.over_ride_format and arg.over_ride_format!="m4a":
-                                    print("USING GENERIC")
-                                    dynamic_cmd=cmd_generic[:]
-                                else:
-                                    print("Using YOUTUBE")
-                                    dynamic_cmd=cmd_youtube[:]            
-                            else:
-                                print("USING GENERIC")
-                                dynamic_cmd=cmd_generic[:]    
+                            dynamic_cmd=command_selection(song_collection[key]["URL"][:23],song_collection[key]["Format"]) # CMD Selection
+                            
+                            #print(dynamic_cmd) # @Debug
 
-                            if song_collection[key]["URL"]:
-                                dynamic_cmd.append(song_collection[key]["URL"].strip())
+                            try:
+                                if song_collection[key]["URL"]:
+                                    dynamic_cmd.append(song_collection[key]["URL"].strip())
+                            except:
+                                console_out("Song URL not Found")
+                            
+                            #print(dynamic_cmd) # @Debug
+
                             if song_collection[key]["Name"]:
                                 if song_collection[key]["Name"]!="":
                                     dynamic_cmd.append("-o")
-                                    dynamic_cmd.append(song_collection[key]["Name"]+"."+song_collection[key]["Format"])
+                                    dynamic_cmd.append(song_collection[key]["Name"]+"."+str(song_collection[key]["Format"] or "m4a"))
+                                    print("## "+str(dynamic_cmd)) # @Debug
                                 else:
                                     print("NOTE: Using file name from URL\n")
                             else:
@@ -236,7 +269,6 @@ if __name__=='__main__':                            # Starting of the program --
                                 console_out("\nDOWNLOADED SONG {}------{}\n".format(key,time.ctime(time.time())))
                                 song_collection[key]["Hash"]="[#]"
                                 song_collection[key]["Cover"]=""
-                                #ong_collection[key]["Format"]="m4a"
                                 
                                 if arg.over_ride:
                                     song_collection[key]["Over-ride"]=time.ctime(time.time())
@@ -255,23 +287,13 @@ if __name__=='__main__':                            # Starting of the program --
                         # If the link has already been downloaded then the program skips those links
                     console_out("\nClosed file {}".format(current[0]))
 
-                    if current[1]=="..":
-                        chdir(getcwd()+"/Muzic_Manager")   # chdir(getcwd()+"/DEV_DIR") chdir(getcwd()+"/Downloader")
-                    else:
-                        chdir("../Muzic_Manager")  # chdir("../DEV_DIR") chdir("../Downloader")
+                    switch_folder_back(current[1]) # Changing Folder to Muzic_Manager
                     
-                    song_data = open(current[0],"w+")
-                    song_data.write(json.dumps(song_collection,indent=4))
-                    song_data.close()
+                    update_json(current[0],song_collection) # Updating info in json file
 
         log.write("\n--------------------------------------")
         log.close()
 
     except KeyboardInterrupt:
-        print("Ooops......Interrupted")
-        print("NOTE: There might be partially downloaded files")
-        print("NOTE: The details of present download might not be recorded")
-        log.write("\nOoops......Interrupted\nNOTE: There might be partially downloaded files\nNOTE: The details of present download might not be recorded")
-        log.write("\n--------------------------------------")
-        log.close()
+        Error_log_msg()
 ####################################### END ############################################
