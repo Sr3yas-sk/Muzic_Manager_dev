@@ -85,11 +85,11 @@ def dir_manage(dname):
 
 def Exception_error(f_name):
     
-    console_out("Download file not found")
+    console_out("Download file not found or Error in JSON format")
     console_out("Creating file "+str(f_name))
     url_list=open(f_name,'w+')
     print("Fill {} file in the format \n {}".format(f_name,json.dumps({"S1":{"Hash":"[ ]","Name":"Song Name","URL":"URL from Youtube","Format":"m4a","cover":"{path_to_cover_picture}"}},indent=4)))
-    url_list.write(json.dumps({"S1":{"Hash":"[ ]/[#]","Name":"Song Name","URL":"URL from Youtube","Format":"m4a","cover":"{path_to_cover_picture}"}},indent=4))
+    url_list.write(json.dumps({"S1":{"Hash":"[ ]","Name":"Song Name","URL":"URL from Youtube","Format":"m4a","cover":"{path_to_cover_picture}"}},indent=4))
     url_list.close()
     console_out("\nOpened & Closed file {}".format(f_name))
     
@@ -124,6 +124,8 @@ def download_link(link,file_name,name=''):
         
         switch_folder_back() # Changing Folder to Muzic_Manager
         
+        if arg.destination:
+            console_out("Destination: {}",format(arg.destination))
         try:
             with open(file_name[0],"r") as f:
                 song_collection = json.load(f)
@@ -150,7 +152,7 @@ def download_link(link,file_name,name=''):
         console_out("\nERROR DOWNLOADING LINK ------{}\n".format(time.ctime(time.time())))    # else dont write to the file
     
     except subprocess.TimeoutExpired :
-        print("PROCESS TOOK LONGER THAN EXPECTED")    
+        console_out("PROCESS TOOK LONGER THAN EXPECTED")    
     return 0
 
 
@@ -160,20 +162,20 @@ def command_selection(URL,format):
     if URL=="https://www.youtube.com":
     
         if arg.over_ride_format and arg.over_ride_format!="m4a":
-            print("USING GENERIC")
+            console_out("USING GENERIC")
             cmd_generic[5]=format
             return cmd_generic[:]
             
         else:
             if format and format!="m4a":
-                print("USING GENERIC")
+                console_out("USING GENERIC")
                 cmd_generic[5]=format
                 return cmd_generic[:]
             else:
-                print("Using YOUTUBE")
+                console_out("Using YOUTUBE")
                 return cmd_youtube[:] 
     else:
-        print("USING GENERIC")
+        console_out("USING GENERIC")
         cmd_generic[5]=format
         return cmd_generic[:]
 
@@ -182,7 +184,7 @@ def switch_folder_back():
     chdir(root)
 
 def update_json(file_name,song_collection):
-    print("Updating json")
+    console_out("Updating json")
     song_data = open(file_name,"w+")
     song_data.write(json.dumps(song_collection,indent=4))
     song_data.close()
@@ -191,7 +193,6 @@ def Error_log_msg():
     console_out("Ooops......Interrupted")
     console_out("NOTE: There might be partially downloaded files")
     console_out("NOTE: The details of present download might not be recorded")
-    log.write("\nOoops......Interrupted\nNOTE: There might be partially downloaded files\nNOTE: The details of present download might not be recorded")
     log.write("\n--------------------------------------")
     log.close()
 
@@ -202,11 +203,14 @@ def switch_to_destination(dest):
         console_out("Destination not valid")
         #print("@@@"+getcwd()) # @Debug
         try:
-            chdir("../Destination")
+            console_out("Trying to create {}",format(dest))
+            mkdir(dest)
+            console_out("Successfully created {}",format(dest))
         except:
-            console_out("Creating folder Destination")
-            mkdir("../Destination")
-            chdir("../Destination")
+            console_out("Error creating {}",format(dest))
+            console_out("Creating folder 'Downloads'")
+            mkdir("../Downloads")
+            chdir("../Downloads")
     return 0
 
 ######################### MAIN PROGRAM ############################################
@@ -218,7 +222,7 @@ if __name__=='__main__':                            # Starting of the program --
 
         if arg.link :
 
-            print("given name ",arg.name)
+            console_out("given name: ",str(arg.name or "None"))
             download_link(arg.link,arg.file_name,arg.name)
 
         else :
@@ -252,9 +256,9 @@ if __name__=='__main__':                            # Starting of the program --
                         if arg.over_ride:                               # Over-ride changing Hash
                             song_collection[key]["Hash"]="[ ]"
                         
-                        if not arg.destination:
-                            if arg.over_ride_format:                        # Over-ride-format by changing Format
-                                song_collection[key]["Format"]=arg.over_ride_format
+                        if not arg.destination and arg.over_ride_format:
+                            #if arg.over_ride_format:                        # Over-ride-format by changing Format
+                            song_collection[key]["Format"]=arg.over_ride_format
 
                         if song_collection[key]["Hash"]!="[#]":
 
@@ -270,13 +274,9 @@ if __name__=='__main__':                            # Starting of the program --
                             
                             #print(dynamic_cmd) # @Debug
 
-                            if song_collection[key]["Name"]:
-                                if song_collection[key]["Name"]!="":
-                                    dynamic_cmd.append("-o")
-                                    dynamic_cmd.append(song_collection[key]["Name"]+"."+(arg.over_ride_format if arg.over_ride_format else str(song_collection[key]["Format"] or "m4a")))
-                                    #print("## "+str(dynamic_cmd)) # @Debug
-                                else:
-                                    print("NOTE: Using file name from URL\n")
+                            if song_collection[key]["Name"]!="":
+                                dynamic_cmd.append("-o")
+                                dynamic_cmd.append(song_collection[key]["Name"]+"."+(arg.over_ride_format if arg.over_ride_format else str(song_collection[key]["Format"] or "m4a")))
                             else:
                                 print("NOTE: Using file name from URL\n")
 
@@ -285,7 +285,6 @@ if __name__=='__main__':                            # Starting of the program --
                                 subprocess.run(dynamic_cmd,check=True,timeout=set_timeout)
                                 console_out("\nDOWNLOADED SONG {}------{}\n".format(key,time.ctime(time.time())))
                                 song_collection[key]["Hash"]="[#]"
-                                song_collection[key]["Cover"]=""
                                 
                                 if arg.over_ride:
                                     song_collection[key]["Over-ride"]=time.ctime(time.time())
