@@ -203,11 +203,13 @@ def switch_to_destination(dest):
         console_out("Destination not valid")
         #print("@@@"+getcwd()) # @Debug
         try:
-            console_out("Trying to create {}",format(dest))
+            console_out("Trying to create {}".format(dest))
             mkdir(dest)
-            console_out("Successfully created {}",format(dest))
+            console_out("Successfully created {}".format(dest))
+            chdir(dest)
+            console_out("Successfully switched to {}".format(dest))
         except:
-            console_out("Error creating {}",format(dest))
+            console_out("Error creating {}".format(dest))
             console_out("Creating folder 'Downloads'")
             mkdir("../Downloads")
             chdir("../Downloads")
@@ -299,6 +301,8 @@ if __name__=='__main__':                            # Starting of the program --
                                 
                                 if arg.over_ride:
                                     console_out("Error downloading while over-ride song {}".format(key))
+                                elif arg.destination:
+                                    console_out("Error downloading to destination song {}".format(key))
                                 else:
                                     song_collection[key]["Hash"]="[ ]"
                             # If error occurs the log file is updated and the program moves on....    
