@@ -4,10 +4,10 @@
 # Description: Shifting from CSV to JSON
 # Author : Sreyas S
 ########################################################
+from importlib.resources import path
 import subprocess
 import time
-from os import remove,rename
-from os import chdir,mkdir,getcwd,replace
+from os import chdir,listdir,mkdir,getcwd,replace,rmdir
 import argparse
 import json
 ######################### PRIMARY SETTING ##############################################
@@ -251,16 +251,18 @@ if __name__=='__main__':                            # Starting of the program --
                 # Looking for title from the files
                 #if not skip:
                 else:
+                    if arg.over_ride:
+                        mkdir("Temp")
+                        chdir("Temp")
+                    
                     for key in song_collection:
 
-                        if arg.over_ride:                               # Over-ride changing Hash
-                            song_collection[key]["Hash"]="[ ]"
-                        
                         if not arg.destination and arg.over_ride_format:
                             #if arg.over_ride_format:                        # Over-ride-format by changing Format
                             song_collection[key]["Format"]=arg.over_ride_format
-
-                        if song_collection[key]["Hash"]!="[#]":
+                            console_out("Updating format in json")
+                        
+                        if song_collection[key]["Hash"]!="[#]" or arg.over_ride:
 
                             dynamic_cmd=command_selection(song_collection[key]["URL"][:23],(arg.over_ride_format if arg.over_ride_format else song_collection[key]["Format"])) # CMD Selection
                             
@@ -294,9 +296,9 @@ if __name__=='__main__':                            # Starting of the program --
                             # Download process underway
                             except subprocess.CalledProcessError:
                                 console_out("ERROR DOWNLOADING SONG {}------{}\n".format(key,time.ctime(time.time())))
+                                
                                 if arg.over_ride:
-                                    song_collection[key]["Hash"]="[#]"
-                                    console_out("Error downloading while over-ride....Try Agian later")
+                                    console_out("Error downloading while over-ride song {}".format(key))
                                 else:
                                     song_collection[key]["Hash"]="[ ]"
                             # If error occurs the log file is updated and the program moves on....    
@@ -305,6 +307,22 @@ if __name__=='__main__':                            # Starting of the program --
 
                         # If the link has already been downloaded then the program skips those links
                     console_out("\nClosed file {}".format(current[0]))
+                    
+                    if arg.over_ride:
+                        #temp=str(song_collection[key]["Name"]+"."+(arg.over_ride_format if arg.over_ride_format else str(song_collection[key]["Format"] or "m4a")))
+                        flag=0
+                        for temp in listdir(path="."):
+                            try:
+                                replace(temp,str("../"+temp)) # @Debug - Check when file doesnt exist
+                            except:
+                                print("Unable to replace file {}".format(temp))
+                                flag=1
+
+                        if flag!=1:
+                            chdir("../")
+                            rmdir("Temp")
+                        else:
+                            console_out("Some files could not be replaced...they are in Temp Folder")
 
                     switch_folder_back() # Changing Folder to Muzic_Manager
                     
