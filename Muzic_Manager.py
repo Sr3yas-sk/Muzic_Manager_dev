@@ -28,7 +28,7 @@ parser.add_argument("-F","--file_name",help="To download a specific list of song
 parser.add_argument("-L","--link",help="Pass the link to download individual song")
 parser.add_argument("-O","--name",help="Give name to file or else name from URL will be used.")
 parser.add_argument("--over-ride",help="Used to download all songs again",action="store_true")
-parser.add_argument("--destination",help="To download songs to new location with over-ride")
+parser.add_argument("--destination",help="To download songs to new location")
 parser.add_argument("--over-ride-format",help="This format will be used to download all songs",choices=["m4a","mp3","opus","FLAC"])
 arg = parser.parse_args()
 
@@ -146,7 +146,8 @@ def download_link(link,file_name,name=''):
         song_collection[letter+new_key]["Format"]=str(arg.over_ride_format or "m4a")
         song_collection[letter+new_key]["Modified"]=time.ctime(time.time())
     
-        update_json(file_name[0], song_collection) # Updating info in json file
+        if not arg.destination:
+            update_json(file_name[0], song_collection) # Updating info in json file
 
     except subprocess.CalledProcessError:
         console_out("\nERROR DOWNLOADING LINK ------{}\n".format(time.ctime(time.time())))    # else dont write to the file
